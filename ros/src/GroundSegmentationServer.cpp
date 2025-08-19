@@ -55,20 +55,10 @@ GroundSegmentationServer::GroundSegmentationServer(const rclcpp::NodeOptions &op
       rclcpp::SensorDataQoS(),
       std::bind(&GroundSegmentationServer::EstimateGround, this, std::placeholders::_1));
 
-  /*
-   * We use the following QoS setting for reliable ground segmentation.
-   * If you want to run Patchwork++ in real-time and real-world operation,
-   * please change the QoS setting
-   */
-  //  rclcpp::QoS qos((rclcpp::SystemDefaultsQoS().keep_last(1).durability_volatile()));
-  rclcpp::QoS qos(rclcpp::QoSInitialization::from_rmw(rmw_qos_profile_default));
-  qos.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
-  qos.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
-
-  cloud_publisher_  = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/cloud", qos);
-  ground_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/ground", qos);
+  
+  ground_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/ground", rclcpp::SensorDataQoS());
   nonground_publisher_ =
-      create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/nonground", qos);
+      create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/nonground", rclcpp::SensorDataQoS());
 
   RCLCPP_INFO(this->get_logger(), "Patchwork++ ROS 2 node initialized");
 }
@@ -79,7 +69,7 @@ void GroundSegmentationServer::EstimateGround(
 
   // Estimate ground
   Patchworkpp_->estimateGround(cloud);
-  cloud_publisher_->publish(patchworkpp_ros::utils::EigenMatToPointCloud2(cloud, msg->header));
+  
   // Get ground and nonground
   Eigen::MatrixX3f ground    = Patchworkpp_->getGround();
   Eigen::MatrixX3f nonground = Patchworkpp_->getNonground();
