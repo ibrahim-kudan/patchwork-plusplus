@@ -25,7 +25,6 @@ using utils::PointCloud2ToEigen;
 GroundSegmentationServer::GroundSegmentationServer(const rclcpp::NodeOptions &options)
     : rclcpp::Node("patchworkpp_node", options) {
   patchwork::Params params;
-  base_frame_ = declare_parameter<std::string>("base_frame", base_frame_);
 
   params.sensor_height = declare_parameter<double>("sensor_height", params.sensor_height);
   params.num_iter      = declare_parameter<int>("num_iter", params.num_iter);
@@ -81,7 +80,6 @@ void GroundSegmentationServer::PublishClouds(const Eigen::MatrixX3f &est_ground,
                                              const Eigen::MatrixX3f &est_nonground,
                                              const std_msgs::msg::Header header_msg) {
   std_msgs::msg::Header header = header_msg;
-  header.frame_id              = base_frame_;
   ground_publisher_->publish(
       std::move(patchworkpp_ros::utils::EigenMatToPointCloud2(est_ground, header)));
   nonground_publisher_->publish(

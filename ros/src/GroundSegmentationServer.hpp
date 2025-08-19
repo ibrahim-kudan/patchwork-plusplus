@@ -36,7 +36,6 @@ class GroundSegmentationServer : public rclcpp::Node {
   /// Patchwork++
   std::unique_ptr<patchwork::PatchWorkpp> Patchworkpp_;
 
-  std::string base_frame_{"base_link"};
 };
 
 }  // namespace patchworkpp_ros
