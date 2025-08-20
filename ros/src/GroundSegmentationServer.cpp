@@ -24,29 +24,27 @@ using utils::PointCloud2ToEigen;
 
 GroundSegmentationServer::GroundSegmentationServer(const rclcpp::NodeOptions &options)
     : rclcpp::Node("patchworkpp_node", options) {
-  patchwork::Params params;
+  params_.sensor_height = declare_parameter<double>("sensor_height", params_.sensor_height);
+  params_.num_iter      = declare_parameter<int>("num_iter", params_.num_iter);
+  params_.num_lpr       = declare_parameter<int>("num_lpr", params_.num_lpr);
+  params_.num_min_pts   = declare_parameter<int>("num_min_pts", params_.num_min_pts);
+  params_.th_seeds      = declare_parameter<double>("th_seeds", params_.th_seeds);
 
-  params.sensor_height = declare_parameter<double>("sensor_height", params.sensor_height);
-  params.num_iter      = declare_parameter<int>("num_iter", params.num_iter);
-  params.num_lpr       = declare_parameter<int>("num_lpr", params.num_lpr);
-  params.num_min_pts   = declare_parameter<int>("num_min_pts", params.num_min_pts);
-  params.th_seeds      = declare_parameter<double>("th_seeds", params.th_seeds);
+  params_.th_dist    = declare_parameter<double>("th_dist", params_.th_dist);
+  params_.th_seeds_v = declare_parameter<double>("th_seeds_v", params_.th_seeds_v);
+  params_.th_dist_v  = declare_parameter<double>("th_dist_v", params_.th_dist_v);
 
-  params.th_dist    = declare_parameter<double>("th_dist", params.th_dist);
-  params.th_seeds_v = declare_parameter<double>("th_seeds_v", params.th_seeds_v);
-  params.th_dist_v  = declare_parameter<double>("th_dist_v", params.th_dist_v);
+  params_.max_range       = declare_parameter<double>("max_range", params_.max_range);
+  params_.min_range       = declare_parameter<double>("min_range", params_.min_range);
+  params_.uprightness_thr = declare_parameter<double>("uprightness_thr", params_.uprightness_thr);
 
-  params.max_range       = declare_parameter<double>("max_range", params.max_range);
-  params.min_range       = declare_parameter<double>("min_range", params.min_range);
-  params.uprightness_thr = declare_parameter<double>("uprightness_thr", params.uprightness_thr);
-
-  params.verbose = get_parameter<bool>("verbose", params.verbose);
+  params_.verbose = get_parameter<bool>("verbose", params_.verbose);
 
   // ToDo. Support intensity
-  params.enable_RNR = false;
+  params_.enable_RNR = get_parameter<bool>("enable_rnr", params_.enable_RNR);
 
   // Construct the main Patchwork++ node
-  Patchworkpp_ = std::make_unique<patchwork::PatchWorkpp>(params);
+  Patchworkpp_ = std::make_unique<patchwork::PatchWorkpp>(params_);
 
   // Initialize subscribers
   pointcloud_sub_ = create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -54,10 +52,10 @@ GroundSegmentationServer::GroundSegmentationServer(const rclcpp::NodeOptions &op
       rclcpp::SensorDataQoS(),
       std::bind(&GroundSegmentationServer::EstimateGround, this, std::placeholders::_1));
 
-  
-  ground_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/ground", rclcpp::SensorDataQoS());
-  nonground_publisher_ =
-      create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/nonground", rclcpp::SensorDataQoS());
+  ground_publisher_    = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/ground",
+                                                                      rclcpp::SensorDataQoS());
+  nonground_publisher_ = create_publisher<sensor_msgs::msg::PointCloud2>("/patchworkpp/nonground",
+                                                                         rclcpp::SensorDataQoS());
 
   RCLCPP_INFO(this->get_logger(), "Patchwork++ ROS 2 node initialized");
 }
@@ -68,7 +66,7 @@ void GroundSegmentationServer::EstimateGround(
 
   // Estimate ground
   Patchworkpp_->estimateGround(cloud);
-  
+
   // Get ground and nonground
   Eigen::MatrixX3f ground    = Patchworkpp_->getGround();
   Eigen::MatrixX3f nonground = Patchworkpp_->getNonground();

@@ -34,8 +34,8 @@ class GroundSegmentationServer : public rclcpp::Node {
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr nonground_publisher_;
 
   /// Patchwork++
+  patchwork::Params params_;
   std::unique_ptr<patchwork::PatchWorkpp> Patchworkpp_;
-
 };
 
 }  // namespace patchworkpp_ros

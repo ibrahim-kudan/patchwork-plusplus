@@ -13,6 +13,7 @@
 #include <rclcpp/logging.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <sensor_msgs/point_cloud_conversion.hpp>
 
 namespace patchworkpp_ros::utils {
 
@@ -162,13 +163,33 @@ inline Eigen::MatrixXf PointCloud2ToEigenMat(const PointCloud2::ConstSharedPtr &
   sensor_msgs::PointCloud2ConstIterator<float> msg_x(*msg, "x");
   sensor_msgs::PointCloud2ConstIterator<float> msg_y(*msg, "y");
   sensor_msgs::PointCloud2ConstIterator<float> msg_z(*msg, "z");
+  const bool has_intensity = sensor_msgs::getPointCloud2FieldIndex(*msg, "intensity") != -1;
+  sensor_msgs::PointCloud2ConstIterator<float> msg_intensity(
+      *msg, "intensity");  // TODO Only create if has_intensity is true, otherwise it will throw
 
   Eigen::MatrixXf points;
   size_t num_points = msg->height * msg->width;
-  points.resize(num_points, 3);
+
+  if (has_intensity) {
+    // If intensity field exists, we will add it as a fourth column
+    points.resize(num_points, 4);
+  } else {
+    // Otherwise we will only have three columns
+    points.resize(num_points, 3);
+  }
 
   for (size_t i = 0; i < num_points; ++i, ++msg_x, ++msg_y, ++msg_z) {
-    points.row(i) << *msg_x, *msg_y, *msg_z;
+    if (has_intensity) {
+      points(i, 0) = *msg_x;
+      points(i, 1) = *msg_y;
+      points(i, 2) = *msg_z;
+      points(i, 3) = *msg_intensity;
+      ++msg_intensity;  // Move to the next intensity value
+    } else {
+      points(i, 0) = *msg_x;
+      points(i, 1) = *msg_y;
+      points(i, 2) = *msg_z;
+    }
   }
 
   return points;
