@@ -38,10 +38,8 @@ GroundSegmentationServer::GroundSegmentationServer(const rclcpp::NodeOptions &op
   params_.min_range       = declare_parameter<double>("min_range", params_.min_range);
   params_.uprightness_thr = declare_parameter<double>("uprightness_thr", params_.uprightness_thr);
 
-  params_.verbose = get_parameter<bool>("verbose", params_.verbose);
-
-  // ToDo. Support intensity
-  params_.enable_RNR = get_parameter<bool>("enable_rnr", params_.enable_RNR);
+  params_.verbose    = declare_parameter<bool>("verbose", params_.verbose);
+  params_.enable_RNR = declare_parameter<bool>("enable_rnr", params_.enable_RNR);
 
   // Construct the main Patchwork++ node
   Patchworkpp_ = std::make_unique<patchwork::PatchWorkpp>(params_);
@@ -64,6 +62,11 @@ void GroundSegmentationServer::EstimateGround(
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg) {
   const auto &cloud = patchworkpp_ros::utils::PointCloud2ToEigenMat(msg);
 
+  if (cloud.cols() < 4 && params_.enable_RNR) {
+    RCLCPP_WARN(
+        this->get_logger(),
+        "PointCloud2 message does not contain the intensity field, the RNR filter is disabled. ");
+  }
   // Estimate ground
   Patchworkpp_->estimateGround(cloud);
 

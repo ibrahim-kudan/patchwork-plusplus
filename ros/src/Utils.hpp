@@ -163,9 +163,13 @@ inline Eigen::MatrixXf PointCloud2ToEigenMat(const PointCloud2::ConstSharedPtr &
   sensor_msgs::PointCloud2ConstIterator<float> msg_x(*msg, "x");
   sensor_msgs::PointCloud2ConstIterator<float> msg_y(*msg, "y");
   sensor_msgs::PointCloud2ConstIterator<float> msg_z(*msg, "z");
+
   const bool has_intensity = sensor_msgs::getPointCloud2FieldIndex(*msg, "intensity") != -1;
-  sensor_msgs::PointCloud2ConstIterator<float> msg_intensity(
-      *msg, "intensity");  // TODO Only create if has_intensity is true, otherwise it will throw
+  std::unique_ptr<sensor_msgs::PointCloud2ConstIterator<float>> msg_intensity;
+  if (has_intensity) {
+    msg_intensity =
+        std::make_unique<sensor_msgs::PointCloud2ConstIterator<float>>(*msg, "intensity");
+  }
 
   Eigen::MatrixXf points;
   size_t num_points = msg->height * msg->width;
@@ -183,8 +187,8 @@ inline Eigen::MatrixXf PointCloud2ToEigenMat(const PointCloud2::ConstSharedPtr &
       points(i, 0) = *msg_x;
       points(i, 1) = *msg_y;
       points(i, 2) = *msg_z;
-      points(i, 3) = *msg_intensity;
-      ++msg_intensity;  // Move to the next intensity value
+      points(i, 3) = msg_intensity->operator*();
+      msg_intensity->operator++();  // Move to the next intensity value
     } else {
       points(i, 0) = *msg_x;
       points(i, 1) = *msg_y;
